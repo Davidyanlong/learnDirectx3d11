@@ -65,7 +65,7 @@ Window::Window(int width, int height, const char* name)
 	}
 	// create window & get hWnd
 	hWnd = CreateWindow(
-		GetWC(WindowClass::GetName()), 
+		GetWC(WindowClass::GetName()),
 		GetWC(name),
 		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
@@ -121,6 +121,18 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 	case WM_CLOSE:
 		PostQuitMessage(0);
 		return 0;
+
+		/*********** KEYBOARD MESSAGES ***********/
+	case WM_KEYDOWN:
+		kbd.OnKeyPressed(static_cast<unsigned char>(wParam));
+		break;
+	case WM_KEYUP:
+		kbd.OnKeyReleased(static_cast<unsigned char>(wParam));
+		break;
+	case WM_CHAR:
+		kbd.OnChar(static_cast<unsigned char>(wParam));
+		break;
+		/*********** END KEYBOARD MESSAGES ***********/
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);
