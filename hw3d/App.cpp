@@ -7,8 +7,6 @@ App::App()
 
 int App::Go()
 {
-	MSG msg;
-	BOOL gResult;
 	while (true)
 	{
 		// process all messages pending, but to not block for new messages
@@ -20,15 +18,6 @@ int App::Go()
 
 		DoFrame();
 	}
-
-	// check if GetMessage call itself borked
-	if (gResult == -1)
-	{
-		throw CHWND_LAST_EXCEPT();
-	}
-
-	// wParam here is the value passed to PostQuitMessage
-	return msg.wParam;
 }
 
 void App::DoFrame()

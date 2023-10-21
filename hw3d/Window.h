@@ -3,6 +3,7 @@
 #include "ChiliException.h"
 #include "Keyboard.h"
 #include "Mouse.h"
+#include <optional>
 
 
 class Window
