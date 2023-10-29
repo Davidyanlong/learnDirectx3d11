@@ -1,7 +1,5 @@
 #include "Window.h"
-#include <string>
 #include <sstream>
-#include <iostream>
 #include "resource.h"
 
 
@@ -13,40 +11,24 @@ Window::WindowClass::WindowClass() noexcept
 	hInst(GetModuleHandle(nullptr))
 {
 	WNDCLASSEX wc = { 0 };
-	
 	wc.cbSize = sizeof(wc);
-
-	// 窗口类的样式
 	wc.style = CS_OWNDC;
-	// 消息处理函数 （ 系统调用 ）
 	wc.lpfnWndProc = HandleMsgSetup;
-
-	// 窗口类的附加内存相当于缓冲区 一般为0 
 	wc.cbClsExtra = 0;
-	// 窗口的附加内存相当于缓冲区 一般0
 	wc.cbWndExtra = 0;
 	wc.hInstance = GetInstance();
-	// 系统默认的图标
 	wc.hIcon = static_cast<HICON>(LoadImage(
 		GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
 		IMAGE_ICON, 32, 32, 0
 	));
-
-	// 鼠标指针
 	wc.hCursor = nullptr;
-	// 获取一个笔刷 作用： 填充背景色
 	wc.hbrBackground = nullptr;
-	// 菜单 NULL 表示不要菜单
 	wc.lpszMenuName = nullptr;
-	// 给类起个名 c++11 c14
-	wc.lpszClassName =    GetName();		   // TEXT("Main"); 
-
+	wc.lpszClassName = GetName();
 	wc.hIconSm = static_cast<HICON>(LoadImage(
 		GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
 		IMAGE_ICON, 16, 16, 0
 	));
-
-	// 注册到系统中
 	RegisterClassEx(&wc);
 }
 
@@ -71,7 +53,6 @@ Window::Window(int width, int height, const char* name)
 	:
 	width(width),
 	height(height)
-
 {
 	// calculate window size based on desired client region size
 	RECT wr;
@@ -79,14 +60,13 @@ Window::Window(int width, int height, const char* name)
 	wr.right = width + wr.left;
 	wr.top = 100;
 	wr.bottom = height + wr.top;
-	if (FAILED(AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE)))
+	if (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE) == 0)
 	{
 		throw CHWND_LAST_EXCEPT();
 	}
 	// create window & get hWnd
 	hWnd = CreateWindow(
-		WindowClass::GetName(),
-		name,
+		WindowClass::GetName(), name,
 		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
 		nullptr, nullptr, WindowClass::GetInstance(), this
@@ -115,7 +95,7 @@ void Window::SetTitle(const std::string& title)
 	}
 }
 
-std::optional<int> Window::ProcessMessages()
+std::optional<int> Window::ProcessMessages() noexcept
 {
 	MSG msg;
 	// while queue has messages, remove and dispatch them (but do not block on empty queue)
@@ -139,6 +119,10 @@ std::optional<int> Window::ProcessMessages()
 
 Graphics& Window::Gfx()
 {
+	if (!pGfx)
+	{
+		throw CHWND_NOGFX_EXCEPT();
+	}
 	return *pGfx;
 }
 
@@ -178,7 +162,6 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 	case WM_CLOSE:
 		PostQuitMessage(0);
 		return 0;
-
 		// clear keystate when window loses focus to prevent input getting "stuck"
 	case WM_KILLFOCUS:
 		kbd.ClearState();
@@ -283,37 +266,15 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 
 
 // Window Exception Stuff
-Window::Exception::Exception(int line, const char* file, HRESULT hr) noexcept
-	:
-	ChiliException(line, file),
-	hr(hr)
-{}
-
-const char* Window::Exception::what() const noexcept
-{
-	std::ostringstream oss;
-	oss << GetType() << std::endl
-		<< "[Error Code] " << GetErrorCode() << std::endl
-		<< "[Description] " << GetErrorString() << std::endl
-		<< GetOriginString();
-	whatBuffer = oss.str();
-	return whatBuffer.c_str();
-}
-
-const char* Window::Exception::GetType() const noexcept
-{
-	return "Chili Window Exception";
-}
-
 std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 {
 	char* pMsgBuf = nullptr;
 	// windows will allocate memory for err string and make our pointer point to it
-	DWORD nMsgLen = FormatMessage(
+	const DWORD nMsgLen = FormatMessage(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		pMsgBuf, 0, nullptr
+		reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr
 	);
 	// 0 string length returned indicates a failure
 	if (nMsgLen == 0)
@@ -327,22 +288,42 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 	return errorString;
 }
 
-HRESULT Window::Exception::GetErrorCode() const noexcept
+
+Window::HrException::HrException(int line, const char* file, HRESULT hr) noexcept
+	:
+	Exception(line, file),
+	hr(hr)
+{}
+
+const char* Window::HrException::what() const noexcept
+{
+	std::ostringstream oss;
+	oss << GetType() << std::endl
+		<< "[Error Code] 0x" << std::hex << std::uppercase << GetErrorCode()
+		<< std::dec << " (" << (unsigned long)GetErrorCode() << ")" << std::endl
+		<< "[Description] " << GetErrorDescription() << std::endl
+		<< GetOriginString();
+	whatBuffer = oss.str();
+	return whatBuffer.c_str();
+}
+
+const char* Window::HrException::GetType() const noexcept
+{
+	return "Chili Window Exception";
+}
+
+HRESULT Window::HrException::GetErrorCode() const noexcept
 {
 	return hr;
 }
 
-std::string Window::Exception::GetErrorString() const noexcept
+std::string Window::HrException::GetErrorDescription() const noexcept
 {
-	return TranslateErrorCode(hr);
+	return Exception::TranslateErrorCode(hr);
 }
 
-const wchar_t* GetWC(const char* c)
-{
-	const size_t cSize = strlen(c) + 1;
-	wchar_t* wc = new wchar_t[cSize];
-#pragma warning(disable:4996)
-	mbstowcs(wc, c, cSize);
 
-	return wc;
+const char* Window::NoGfxException::GetType() const noexcept
+{
+	return "Chili Window Exception [No Graphics]";
 }
