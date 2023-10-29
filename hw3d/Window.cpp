@@ -13,30 +13,46 @@ Window::WindowClass::WindowClass() noexcept
 	hInst(GetModuleHandle(nullptr))
 {
 	WNDCLASSEX wc = { 0 };
+	
 	wc.cbSize = sizeof(wc);
+
+	// 窗口类的样式
 	wc.style = CS_OWNDC;
+	// 消息处理函数 （ 系统调用 ）
 	wc.lpfnWndProc = HandleMsgSetup;
+
+	// 窗口类的附加内存相当于缓冲区 一般为0 
 	wc.cbClsExtra = 0;
+	// 窗口的附加内存相当于缓冲区 一般0
 	wc.cbWndExtra = 0;
 	wc.hInstance = GetInstance();
+	// 系统默认的图标
 	wc.hIcon = static_cast<HICON>(LoadImage(
 		GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
 		IMAGE_ICON, 32, 32, 0
 	));
+
+	// 鼠标指针
 	wc.hCursor = nullptr;
+	// 获取一个笔刷 作用： 填充背景色
 	wc.hbrBackground = nullptr;
+	// 菜单 NULL 表示不要菜单
 	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = GetWC(GetName());
+	// 给类起个名 c++11 c14
+	wc.lpszClassName =    GetName();		   // TEXT("Main"); 
+
 	wc.hIconSm = static_cast<HICON>(LoadImage(
 		GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
 		IMAGE_ICON, 16, 16, 0
 	));
+
+	// 注册到系统中
 	RegisterClassEx(&wc);
 }
 
 Window::WindowClass::~WindowClass()
 {
-	UnregisterClass(GetWC(wndClassName), GetInstance());
+	UnregisterClass(wndClassName, GetInstance());
 }
 
 const char* Window::WindowClass::GetName() noexcept
@@ -69,8 +85,8 @@ Window::Window(int width, int height, const char* name)
 	}
 	// create window & get hWnd
 	hWnd = CreateWindow(
-		GetWC(WindowClass::GetName()),
-		GetWC(name),
+		WindowClass::GetName(),
+		name,
 		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
 		CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
 		nullptr, nullptr, WindowClass::GetInstance(), this
@@ -80,8 +96,10 @@ Window::Window(int width, int height, const char* name)
 	{
 		throw CHWND_LAST_EXCEPT();
 	}
-	// show window
+	// newly created windows start off as hidden
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
+	// create graphics object
+	pGfx = std::make_unique<Graphics>(hWnd);
 }
 
 Window::~Window()
@@ -91,7 +109,7 @@ Window::~Window()
 
 void Window::SetTitle(const std::string& title)
 {
-	if (SetWindowText(hWnd, GetWC(title.c_str())) == 0)
+	if (SetWindowText(hWnd, title.c_str()) == 0)
 	{
 		throw CHWND_LAST_EXCEPT();
 	}
@@ -117,6 +135,11 @@ std::optional<int> Window::ProcessMessages()
 
 	// return empty optional when not quitting app
 	return {};
+}
+
+Graphics& Window::Gfx()
+{
+	return *pGfx;
 }
 
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
@@ -290,7 +313,7 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 		FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		reinterpret_cast<LPWSTR>(&pMsgBuf), 0, nullptr
+		pMsgBuf, 0, nullptr
 	);
 	// 0 string length returned indicates a failure
 	if (nMsgLen == 0)
