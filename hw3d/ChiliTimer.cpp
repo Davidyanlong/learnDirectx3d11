@@ -7,7 +7,7 @@ ChiliTimer::ChiliTimer() noexcept
 	last = steady_clock::now();
 }
 
-float ChiliTimer::Mark()  noexcept
+float ChiliTimer::Mark() noexcept
 {
 	const auto old = last;
 	last = steady_clock::now();

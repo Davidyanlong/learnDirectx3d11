@@ -1,13 +1,12 @@
-
 #include "App.h"
 
-// 因为这里我们的文件名是winMain 所以 直接一个main 方法作为入口函数会报错
-int WINAPI  WinMain(
-	HINSTANCE	hInstance,
-	HINSTANCE	hPrevInstance,
-	LPSTR				IpCmdLine,
-	int						nCmdShow
-) {
+
+int CALLBACK WinMain(
+	HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPSTR     lpCmdLine,
+	int       nCmdShow)
+{
 	try
 	{
 		return App{}.Go();
@@ -22,7 +21,7 @@ int WINAPI  WinMain(
 	}
 	catch (...)
 	{
-		::MessageBox(nullptr, "No details available", "Unknown Exception", MB_OK | MB_ICONEXCLAMATION);
+		MessageBox(nullptr, "No details available", "Unknown Exception", MB_OK | MB_ICONEXCLAMATION);
 	}
-
+	return -1;
 }
