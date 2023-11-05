@@ -3,6 +3,7 @@
 #include "GraphicsThrowMacros.h"
 #include "Cube.h"
 
+
 Box::Box(Graphics& gfx,
 	std::mt19937& rng,
 	std::uniform_real_distribution<float>& adist,
@@ -30,7 +31,6 @@ Box::Box(Graphics& gfx,
 		{
 			dx::XMFLOAT3 pos;
 		};
-
 		const auto model = Cube::Make<Vertex>();
 
 		AddStaticBind(std::make_unique<VertexBuffer>(gfx, model.vertices));
@@ -42,6 +42,7 @@ Box::Box(Graphics& gfx,
 		AddStaticBind(std::make_unique<PixelShader>(gfx, L"ColorIndexPS.cso"));
 
 		AddStaticIndexBuffer(std::make_unique<IndexBuffer>(gfx, model.indices));
+
 		struct PixelShaderConstants
 		{
 			struct
@@ -50,17 +51,19 @@ Box::Box(Graphics& gfx,
 				float g;
 				float b;
 				float a;
-			} face_colors[6];
+			} face_colors[8];
 		};
-		const PixelShaderConstants  cb2 =
+		const PixelShaderConstants cb2 =
 		{
 			{
-				{ 1.0f,0.0f,1.0f },
+				{ 1.0f,1.0f,1.0f },
 				{ 1.0f,0.0f,0.0f },
 				{ 0.0f,1.0f,0.0f },
-				{ 0.0f,0.0f,1.0f },
 				{ 1.0f,1.0f,0.0f },
+				{ 0.0f,0.0f,1.0f },
+				{ 1.0f,0.0f,1.0f },
 				{ 0.0f,1.0f,1.0f },
+				{ 0.0f,0.0f,0.0f },
 			}
 		};
 		AddStaticBind(std::make_unique<PixelConstantBuffer<PixelShaderConstants>>(gfx, cb2));
@@ -77,8 +80,8 @@ Box::Box(Graphics& gfx,
 	{
 		SetIndexFromStatic();
 	}
-	AddBind(std::make_unique<TransformCbuf>(gfx, *this));
 
+	AddBind(std::make_unique<TransformCbuf>(gfx, *this));
 
 	// model deformation transform (per instance, not stored as bind)
 	dx::XMStoreFloat3x3(
