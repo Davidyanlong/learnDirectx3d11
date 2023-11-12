@@ -116,6 +116,11 @@ Graphics::Graphics(HWND hWnd)
 
 }
 
+Graphics::~Graphics()
+{
+	ImGui_ImplDX11_Shutdown();
+}
+
 void Graphics::EndFrame()
 {
 	// imgui frame end
@@ -172,6 +177,17 @@ DirectX::XMMATRIX Graphics::GetProjection() const noexcept
 {
 	return projection;
 }
+
+void Graphics::SetCamera(DirectX::FXMMATRIX cam) noexcept
+{
+	camera = cam;
+}
+
+DirectX::XMMATRIX Graphics::GetCamera() const noexcept
+{
+	return camera;
+}
+
 
 void Graphics::EnableImgui() noexcept
 {
